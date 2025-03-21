@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A CloudFormation template to create a Serverless Resources for ClientOnBoarding Service.
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ResourceNamePrefix:
+    Type: String
+    Description: Enter prefix for resource names.
+    Default: Los
+  EnvironmentType:
+    Type: String
+    Description: Enter environment type according to need.
+    Default: Dev
+  ServiceName:
+    Type: String
+    Description: Enter the service name for which the resources are being created.
+    Default: ClientOnBoarding
+Resources:
+
+  CommonModuleLayer:
+    Type: 'AWS::Serverless::LayerVersion'
+    Properties:
+      Description: A Lambda LayerVersion for ClientOnBoarding Function.
+      LayerName: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer'
+      ContentUri: infra_automation/common_modules/
+      CompatibleRuntimes:
+        - python3.11
+        - python3.12
+      LicenseInfo: MIT
+      RetentionPolicy: Retain
