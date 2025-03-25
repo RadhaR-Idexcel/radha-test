@@ -1,5 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A CloudFormation template to create a Serverless Resources for ClientOnBoarding Service.
+Description: A CloudFormation template to create a Serverless Resources for ClientOnBoarding
+  Service.
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   ResourceNamePrefix:
@@ -15,16 +16,23 @@ Parameters:
     Description: Enter the service name for which the resources are being created.
     Default: ClientOnBoarding
 Resources:
-
   CommonModuleLayer:
-    Type: 'AWS::Serverless::LayerVersion'
+    Type: AWS::Serverless::LayerVersion
     Properties:
       Description: A Lambda LayerVersion for ClientOnBoarding Function.
-      LayerName: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer'
-      ContentUri: infra_automation/common_modules/
+      LayerName:
+        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer
+      ContentUri: s3://los-dev-snehasunil-bkt/LambdaLayers/Package_Outputs/95cae6078a2e2cc97173435438b04649
       CompatibleRuntimes:
-        - python3.11
-        - python3.12
-        - python3.9
+      - python3.11
+      - python3.12
+      - python3.9
       LicenseInfo: MIT
       RetentionPolicy: Retain
+  # Target S3 Bucket
+  TargetBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: radha-test-s3-bucket
+      VersioningConfiguration:
+        Status: Enabled
