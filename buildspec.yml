@@ -11,6 +11,7 @@ phases:
     commands:
       #- eval $PreBuildScript  # Run custom pre-build script (if provided)
       - pip install -r requirements.txt  # Install dependencies
+      - mkdir -p artifacts
 
   build:
     on-failure: ABORT
