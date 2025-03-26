@@ -59,9 +59,9 @@ Resources:
       RetentionPolicy: Retain
 
   # Target S3 Bucket
-  TargetBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: radha-test-s3-bucket
-      VersioningConfiguration:
-        Status: Enabled
+  #TargetBucket:
+    #Type: AWS::S3::Bucket
+    #Properties:
+      #BucketName: radha-test-s3-bucket
+      #VersioningConfiguration:
+        #Status: Enabled
