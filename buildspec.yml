@@ -7,17 +7,40 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      #- eval $PreBuildScript  # Run custom pre-build script (if provided)
-      #- pip install -r requirements.txt  # Install dependencies
-      - mkdir -p artifacts
-      - |
-        COMMON_MODULES_HASH=$(find infra_automation/common_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        NUMPY_LAYER_HASH=$(find infra_automation/numpy_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        PANDAS_LAYER_HASH=$(find infra_automation/pandas_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+    - mkdir artifacts
+    - |
+      # Ensure consistent hash generation across platforms
+      powershell -Command "& {
+        $ErrorActionPreference = 'Stop'
         
-        echo "Common Modules Layer Hash: $COMMON_MODULES_HASH"
-        echo "NumPy Layer Hash: $NUMPY_LAYER_HASH"
-        echo "Pandas Layer Hash: $PANDAS_LAYER_HASH"
+        # Function to generate consistent file hash
+        function Get-ConsistentFileHash {
+            param (
+                [string]$DirectoryPath
+            )
+            
+            # Get all files, sort them, and generate a combined hash
+            $files = Get-ChildItem -Path $DirectoryPath -Recurse -File | 
+                     Sort-Object FullName | 
+                     ForEach-Object { 
+                         $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash
+                         $_.FullName + ':' + $hash 
+                     }
+            
+            $combinedHash = ($files | Out-String | Get-FileHash -Algorithm SHA256).Hash
+            return $combinedHash
+        }
+        
+        # Generate hashes for each layer
+        $commonModulesHash = Get-ConsistentFileHash -DirectoryPath "infra_automation/common_modules"
+        $numpyLayerHash = Get-ConsistentFileHash -DirectoryPath "numpy_modules"
+        $pandasLayerHash = Get-ConsistentFileHash -DirectoryPath "pandas_modules"
+        
+        # Output hashes
+        Write-Host "Common Modules Layer Hash: $commonModulesHash"
+        Write-Host "NumPy Layer Hash: $numpyLayerHash"
+        Write-Host "Pandas Layer Hash: $pandasLayerHash"
+      }"
   build:
     on-failure: ABORT
     commands:
