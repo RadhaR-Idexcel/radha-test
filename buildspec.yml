@@ -1,48 +1,81 @@
 version: 0.2
 phases:
   install:
-    on-failure: ABORT
     runtime-versions:
       python: 3.12
+    commands:
+      - echo "Installing dependencies"
 
   pre_build:
-    on-failure: ABORT
     commands:
       - mkdir -p artifacts
       - |
         COMMON_MODULES_HASH=$(find infra_automation/common_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
         NUMPY_LAYER_HASH=$(find infra_automation/numpy_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
         PANDAS_LAYER_HASH=$(find infra_automation/pandas_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
+        
+        echo $COMMON_MODULES_HASH > artifacts/common_modules_hash.txt
+        echo $NUMPY_LAYER_HASH > artifacts/numpy_layer_hash.txt
+        echo $PANDAS_LAYER_HASH > artifacts/pandas_layer_hash.txt
 
-        echo "Common Modules Layer Hash: $COMMON_MODULES_HASH"
-        echo "NumPy Layer Hash: $NUMPY_LAYER_HASH"
-        echo "Pandas Layer Hash: $PANDAS_LAYER_HASH"
+      - aws s3 cp s3://<your-bucket>/common_modules_hash.txt ./previous_common_modules_hash.txt || true
+      - aws s3 cp s3://<your-bucket>/numpy_layer_hash.txt ./previous_numpy_layer_hash.txt || true
+      - aws s3 cp s3://<your-bucket>/pandas_layer_hash.txt ./previous_pandas_layer_hash.txt || true
 
-      # Zip layers only if there is a change
       - |
-        if [[ ! -f artifacts/common_modules_${COMMON_MODULES_HASH}.zip ]]; then
-          zip -r artifacts/common_modules_${COMMON_MODULES_HASH}.zip infra_automation/common_modules/
+        if [ "$COMMON_MODULES_HASH" == "$(cat ./previous_common_modules_hash.txt 2>/dev/null)" ]; then
+          echo "No changes detected in Common Modules, skipping..."
+          SKIP_COMMON_MODULE_LAYER=true
+        else
+          SKIP_COMMON_MODULE_LAYER=false
         fi
 
-        if [[ ! -f artifacts/numpy_modules_${NUMPY_LAYER_HASH}.zip ]]; then
-          zip -r artifacts/numpy_modules_${NUMPY_LAYER_HASH}.zip infra_automation/numpy_modules/
+        if [ "$NUMPY_LAYER_HASH" == "$(cat ./previous_numpy_layer_hash.txt 2>/dev/null)" ]; then
+          echo "No changes detected in NumPy Layer, skipping..."
+          SKIP_NUMPY_LAYER=true
+        else
+          SKIP_NUMPY_LAYER=false
         fi
 
-        if [[ ! -f artifacts/pandas_modules_${PANDAS_LAYER_HASH}.zip ]]; then
-          zip -r artifacts/pandas_modules_${PANDAS_LAYER_HASH}.zip infra_automation/pandas_modules/
+        if [ "$PANDAS_LAYER_HASH" == "$(cat ./previous_pandas_layer_hash.txt 2>/dev/null)" ]; then
+          echo "No changes detected in Pandas Layer, skipping..."
+          SKIP_PANDAS_LAYER=true
+        else
+          SKIP_PANDAS_LAYER=false
         fi
 
   build:
-    on-failure: ABORT
     commands:
-      - echo "Build script execution."
+      - if [ "$SKIP_COMMON_MODULE_LAYER" = false ]; then
+          aws cloudformation package \
+          --template-file template.yml \
+          --s3-bucket $BUILD_OUTPUT_BUCKET \
+          --s3-prefix $BUILD_OUTPUT_PREFIX \
+          --output-template-file artifacts/packaged_common_module_layer.yaml;
+        fi
+
+      - if [ "$SKIP_NUMPY_LAYER" = false ]; then
+          aws cloudformation package \
+          --template-file template.yml \
+          --s3-bucket $BUILD_OUTPUT_BUCKET \
+          --s3-prefix $BUILD_OUTPUT_PREFIX \
+          --output-template-file artifacts/packaged_numpy_layer.yaml;
+        fi
+
+      - if [ "$SKIP_PANDAS_LAYER" = false ]; then
+          aws cloudformation package \
+          --template-file template.yml \
+          --s3-bucket $BUILD_OUTPUT_BUCKET \
+          --s3-prefix $BUILD_OUTPUT_PREFIX \
+          --output-template-file artifacts/packaged_pandas_layer.yaml;
+        fi
 
   post_build:
-    on-failure: ABORT
     commands:
-      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml
-
+      - aws s3 cp artifacts/common_modules_hash.txt s3://<your-bucket>/
+      - aws s3 cp artifacts/numpy_layer_hash.txt s3://<your-bucket>/
+      - aws s3 cp artifacts/pandas_layer_hash.txt s3://<your-bucket>/
 artifacts:
   type: zip
   files:
-    - 'artifacts/*'
+    - 'artifacts/*/'
