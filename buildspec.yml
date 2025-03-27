@@ -13,10 +13,24 @@ phases:
         COMMON_MODULES_HASH=$(find infra_automation/common_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
         NUMPY_LAYER_HASH=$(find infra_automation/numpy_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
         PANDAS_LAYER_HASH=$(find infra_automation/pandas_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        
+
         echo "Common Modules Layer Hash: $COMMON_MODULES_HASH"
         echo "NumPy Layer Hash: $NUMPY_LAYER_HASH"
         echo "Pandas Layer Hash: $PANDAS_LAYER_HASH"
+
+      # Zip layers only if there is a change
+      - |
+        if [[ ! -f artifacts/common_modules_${COMMON_MODULES_HASH}.zip ]]; then
+          zip -r artifacts/common_modules_${COMMON_MODULES_HASH}.zip infra_automation/common_modules/
+        fi
+
+        if [[ ! -f artifacts/numpy_modules_${NUMPY_LAYER_HASH}.zip ]]; then
+          zip -r artifacts/numpy_modules_${NUMPY_LAYER_HASH}.zip infra_automation/numpy_modules/
+        fi
+
+        if [[ ! -f artifacts/pandas_modules_${PANDAS_LAYER_HASH}.zip ]]; then
+          zip -r artifacts/pandas_modules_${PANDAS_LAYER_HASH}.zip infra_automation/pandas_modules/
+        fi
 
   build:
     on-failure: ABORT

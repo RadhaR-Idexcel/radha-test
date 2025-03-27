@@ -1,20 +1,23 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A CloudFormation template to create Lambda Layers for ClientOnBoarding Service
+Description: A CloudFormation template to create Serverless Resources for ClientOnBoarding Service
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
   ResourceNamePrefix:
     Type: String
-    Description: Enter prefix for resource names.
     Default: Los
   EnvironmentType:
     Type: String
-    Description: Enter environment type according to need.
     Default: Dev
   ServiceName:
     Type: String
-    Description: Enter the service name for which the resources are being created.
     Default: ClientOnBoarding
+  CommonModulesHash:
+    Type: String
+  NumPyLayerHash:
+    Type: String
+  PandasLayerHash:
+    Type: String
 
 Resources:
   CommonModuleLayer:
@@ -22,7 +25,7 @@ Resources:
     Properties:
       Description: A Lambda LayerVersion for ClientOnBoarding Function.
       LayerName: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer"
-      ContentUri: infra_automation/common_modules/
+      ContentUri: !Sub "artifacts/common_modules_${CommonModulesHash}.zip"
       CompatibleRuntimes:
         - python3.11
         - python3.12
@@ -30,14 +33,14 @@ Resources:
       LicenseInfo: MIT
       RetentionPolicy: Retain
     Metadata:
-      Hash: COMMON_MODULES_HASH_PLACEHOLDER
+      Hash: !Ref CommonModulesHash
 
   NumPyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for NumPy dependencies
       LayerName: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer"
-      ContentUri: infra_automation/numpy_modules/
+      ContentUri: !Sub "artifacts/numpy_modules_${NumPyLayerHash}.zip"
       CompatibleRuntimes:
         - python3.11
         - python3.12
@@ -45,19 +48,18 @@ Resources:
       LicenseInfo: MIT
       RetentionPolicy: Retain
     Metadata:
-      Hash: NUMPY_LAYER_HASH_PLACEHOLDER
+      Hash: !Ref NumPyLayerHash
 
   PandasLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for Pandas dependencies
       LayerName: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer"
-      ContentUri: infra_automation/pandas_modules/
+      ContentUri: !Sub "artifacts/pandas_modules_${PandasLayerHash}.zip"
       CompatibleRuntimes:
         - python3.11
         - python3.12
-        - python3.9
       LicenseInfo: MIT
       RetentionPolicy: Retain
     Metadata:
-      Hash: PANDAS_LAYER_HASH_PLACEHOLDER
+      Hash: !Ref PandasLayerHash
