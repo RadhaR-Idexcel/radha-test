@@ -1,17 +1,15 @@
 version: 0.2
-
 phases:
   install:
     on-failure: ABORT
     runtime-versions:
       python: 3.12
-  
   pre_build:
     on-failure: ABORT
     commands:
+      #- eval $PreBuildScript  # Run custom pre-build script (if provided)
+      #- pip install -r requirements.txt  # Install dependencies
       - mkdir -p artifacts
-      
-      # Calculate content hashes for each layer
       - |
         COMMON_MODULES_HASH=$(find infra_automation/common_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
         NUMPY_LAYER_HASH=$(find infra_automation/numpy_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
@@ -20,28 +18,14 @@ phases:
         echo "Common Modules Layer Hash: $COMMON_MODULES_HASH"
         echo "NumPy Layer Hash: $NUMPY_LAYER_HASH"
         echo "Pandas Layer Hash: $PANDAS_LAYER_HASH"
-  
   build:
     on-failure: ABORT
     commands:
       - echo "Build script execution."
-      # Pass the calculated hashes as parameter overrides
-      - |
-        aws cloudformation package \
-          --template-file template.yml \
-          --s3-bucket $BUILD_OUTPUT_BUCKET \
-          --s3-prefix $BUILD_OUTPUT_PREFIX \
-          --output-template-file artifacts/packaged.yaml \
-          --parameter-overrides \
-            CommonModulesLayerHash=$COMMON_MODULES_HASH \
-            NumPyLayerHash=$NUMPY_LAYER_HASH \
-            PandasLayerHash=$PANDAS_LAYER_HASH
-  
   post_build:
     on-failure: ABORT
     commands:
-      - echo "Post-build steps completed."
-
+      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml
 artifacts:
   type: zip
   files:
