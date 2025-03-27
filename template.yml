@@ -1,7 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-
 Description: A CloudFormation template to create Serverless Resources for ClientOnBoarding Service
-
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
@@ -9,68 +7,75 @@ Parameters:
     Type: String
     Description: Enter prefix for resource names.
     Default: Los
+  
   EnvironmentType:
     Type: String
     Description: Enter environment type according to need.
     Default: Dev
+  
   ServiceName:
     Type: String
     Description: Enter the service name for which the resources are being created.
     Default: ClientOnBoarding
-  CommonModulesHash:
+  
+  CommonModulesLayerHash:
     Type: String
-    Description: Hash for Common Modules Layer
+    Description: Hash of common modules layer files
+    Default: default-common-modules-hash
+  
   NumPyLayerHash:
     Type: String
-    Description: Hash for NumPy Layer
+    Description: Hash of NumPy layer files
+    Default: default-numpy-layer-hash
+  
   PandasLayerHash:
     Type: String
-    Description: Hash for Pandas Layer
-  YourBucket:
+    Description: Hash of Pandas layer files
+    Default: default-pandas-layer-hash
+  
+  # Additional parameters with meaningful defaults
+  PythonRuntimes:
+    Type: CommaDelimitedList
+    Description: Compatible Python runtimes for layers
+    Default: python3.11,python3.12,python3.9
+  
+  LayerLicenseInfo:
     Type: String
-    Description: S3 bucket name for layer storage
+    Description: License information for layers
+    Default: MIT
 
 Resources:
   CommonModuleLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: A Lambda LayerVersion for ClientOnBoarding Function.
-      LayerName:
-        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer
-      ContentUri:
-        Fn::Sub: s3://${YourBucket}/common_modules/${CommonModulesHash}/
-      CompatibleRuntimes:
-      - python3.11
-      - python3.12
-      - python3.9
-      LicenseInfo: MIT
+      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer
+      ContentUri: infra_automation/common_modules/
+      CompatibleRuntimes: !Ref PythonRuntimes
+      LicenseInfo: !Ref LayerLicenseInfo
       RetentionPolicy: Retain
+      VersionDescription: !Ref CommonModulesLayerHash
 
   NumPyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for NumPy dependencies
-      LayerName:
-        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer
-      ContentUri:
-        Fn::Sub: s3://${YourBucket}/numpy_modules/${NumPyLayerHash}/
-      CompatibleRuntimes:
-      - python3.11
-      - python3.12
-      - python3.9
-      LicenseInfo: MIT
+      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer
+      ContentUri: infra_automation/numpy_modules/
+      CompatibleRuntimes: !Ref PythonRuntimes
+      LicenseInfo: !Ref LayerLicenseInfo
       RetentionPolicy: Retain
+      VersionDescription: !Ref NumPyLayerHash
 
   PandasLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for Pandas dependencies
-      LayerName:
-        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer
-      ContentUri:
-        Fn::Sub: s3://${YourBucket}/pandas_modules/${PandasLayerHash}/
-      CompatibleRuntimes:
-      - python3.11
-      - python3.12
-      LicenseInfo: MIT
+      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer
+      ContentUri: infra_automation/pandas_modules/
+      CompatibleRuntimes: 
+        - python3.11
+        - python3.12
+      LicenseInfo: !Ref LayerLicenseInfo
       RetentionPolicy: Retain
+      VersionDescription: !Ref PandasLayerHash
