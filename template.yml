@@ -7,75 +7,61 @@ Parameters:
     Type: String
     Description: Enter prefix for resource names.
     Default: Los
-  
   EnvironmentType:
     Type: String
     Description: Enter environment type according to need.
     Default: Dev
-  
   ServiceName:
     Type: String
     Description: Enter the service name for which the resources are being created.
     Default: ClientOnBoarding
-  
-  CommonModulesLayerHash:
-    Type: String
-    Description: Hash of common modules layer files
-    Default: default-common-modules-hash
-  
-  NumPyLayerHash:
-    Type: String
-    Description: Hash of NumPy layer files
-    Default: default-numpy-layer-hash
-  
-  PandasLayerHash:
-    Type: String
-    Description: Hash of Pandas layer files
-    Default: default-pandas-layer-hash
-  
-  # Additional parameters with meaningful defaults
-  PythonRuntimes:
-    Type: CommaDelimitedList
-    Description: Compatible Python runtimes for layers
-    Default: python3.11,python3.12,python3.9
-  
-  LayerLicenseInfo:
-    Type: String
-    Description: License information for layers
-    Default: MIT
 
 Resources:
   CommonModuleLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: A Lambda LayerVersion for ClientOnBoarding Function.
-      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer
+      LayerName:
+        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer
       ContentUri: infra_automation/common_modules/
-      CompatibleRuntimes: !Ref PythonRuntimes
-      LicenseInfo: !Ref LayerLicenseInfo
+      CompatibleRuntimes:
+      - python3.11
+      - python3.12
+      - python3.9
+      LicenseInfo: MIT
       RetentionPolicy: Retain
-      VersionDescription: !Ref CommonModulesLayerHash
 
   NumPyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for NumPy dependencies
-      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer
+      LayerName:
+        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer
       ContentUri: infra_automation/numpy_modules/
-      CompatibleRuntimes: !Ref PythonRuntimes
-      LicenseInfo: !Ref LayerLicenseInfo
+      CompatibleRuntimes:
+      - python3.11
+      - python3.12
+      - python3.9
+      LicenseInfo: MIT
       RetentionPolicy: Retain
-      VersionDescription: !Ref NumPyLayerHash
 
   PandasLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       Description: Lambda Layer for Pandas dependencies
-      LayerName: !Sub ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer
+      LayerName:
+        Fn::Sub: ${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer
       ContentUri: infra_automation/pandas_modules/
-      CompatibleRuntimes: 
-        - python3.11
-        - python3.12
-      LicenseInfo: !Ref LayerLicenseInfo
+      CompatibleRuntimes:
+      - python3.11
+      - python3.12
+      LicenseInfo: MIT
       RetentionPolicy: Retain
-      VersionDescription: !Ref PandasLayerHash
+
+  # Target S3 Bucket
+  #TargetBucket:
+    #Type: AWS::S3::Bucket
+    #Properties:
+      #BucketName: radha-test-s3-bucket
+      #VersioningConfiguration:
+        #Status: Enabled
