@@ -8,64 +8,32 @@ phases:
     on-failure: ABORT
     commands:
       - mkdir -p artifacts
-      - mkdir -p layer_hashes
-      
-      # Calculate hashes for each layer directory
-      - echo "Calculating layer content hashes..."
-      - COMMON_HASH=$(find infra_automation/common_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
-      - NUMPY_HASH=$(find infra_automation/numpy_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
-      - PANDAS_HASH=$(find infra_automation/pandas_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
-      
-      # Check if previous hashes exist and compare
+      # Calculate hash of layer content
       - |
-        if [ -f layer_hashes/common_hash.txt ]; then
-          PREV_COMMON_HASH=$(cat layer_hashes/common_hash.txt)
-          if [ "$COMMON_HASH" == "$PREV_COMMON_HASH" ]; then
-            echo "CommonModuleLayer content unchanged, will reuse existing layer version"
-            sed -i 's|ContentUri: infra_automation/common_modules/|#ContentUri: infra_automation/common_modules/|g' template.yml
-          else
-            echo "CommonModuleLayer content changed, will create new version"
-          fi
-        fi
+        (cd infra_automation/common_modules/ && zip -rq - .) > layer_content.zip
+        LAYER_HASH=$(openssl dgst -sha256 -r layer_content.zip | awk '{print $1}')
+        echo "Layer hash: $LAYER_HASH"
+        echo "LAYER_HASH=$LAYER_HASH" >> env.properties
       - |
-        if [ -f layer_hashes/numpy_hash.txt ]; then
-          PREV_NUMPY_HASH=$(cat layer_hashes/numpy_hash.txt)
-          if [ "$NUMPY_HASH" == "$PREV_NUMPY_HASH" ]; then
-            echo "NumPyLayer content unchanged, will reuse existing layer version"
-            sed -i 's|ContentUri: infra_automation/numpy_modules/|#ContentUri: infra_automation/numpy_modules/|g' template.yml
-          else
-            echo "NumPyLayer content changed, will create new version"
-          fi
-        fi
+        (cd infra_automation/numpy_modules/ && zip -rq - .) > numpy_layer_content.zip
+        NUMPY_LAYER_HASH=$(openssl dgst -sha256 -r numpy_layer_content.zip | awk '{print $1}')
+        echo "numpy layer hash: $NUMPY_LAYER_HASH"
+        echo "NUMPY_LAYER_HASH=$NUMPY_LAYER_HASH" >> env.properties
       - |
-        if [ -f layer_hashes/pandas_hash.txt ]; then
-          PREV_PANDAS_HASH=$(cat layer_hashes/pandas_hash.txt)
-          if [ "$PANDAS_HASH" == "$PREV_PANDAS_HASH" ]; then
-            echo "PandasLayer content unchanged, will reuse existing layer version"
-            sed -i 's|ContentUri: infra_automation/pandas_modules/|#ContentUri: infra_automation/pandas_modules/|g' template.yml
-          else
-            echo "PandasLayer content changed, will create new version"
-          fi
-        fi
-      
-      # Store current hashes for next build
-      - echo $COMMON_HASH > layer_hashes/common_hash.txt
-      - echo $NUMPY_HASH > layer_hashes/numpy_hash.txt
-      - echo $PANDAS_HASH > layer_hashes/pandas_hash.txt
-      - cp -r layer_hashes artifacts/
-
+        (cd infra_automation/pandas_modules/ && zip -rq - .) > pandas_layer_content.zip
+        PANDAS_LAYER_HASH=$(openssl dgst -sha256 -r pandas_layer_content.zip | awk '{print $1}')
+        echo "pandas layer hash: $PANDAS_LAYER_HASH"
+        echo "PANDAS_LAYER_HASH=$PANDAS_LAYER_HASH" >> env.properties
+      - cat env.properties > env.txt
   build:
     on-failure: ABORT
     commands:
       - echo "Build script execution."
-
   post_build:
     on-failure: ABORT
     commands:
-      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml
-
+      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml --parameter-overrides file://env.txt
 artifacts:
   type: zip
   files:
-    - 'artifacts/**/*'
-    - 'layer_hashes/**/*'
+    - 'artifacts/*/'

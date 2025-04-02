@@ -14,17 +14,15 @@ Parameters:
     Type: String
     Description: Enter the service name for which the resources are being created.
     Default: ClientOnBoarding
-  ForceLayerUpdate:
+  CommonModuleLayerHash:
     Type: String
-    Description: Parameter to control whether to force a layer update
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-
-Conditions:
-  ShouldUpdateLayers: !Equals [!Ref ForceLayerUpdate, "true"]
-
+    Default: "InitialHash"
+  NumPyLayerHash:
+    Type: String
+    Default: "InitialHash"
+  PandasLayerHash:
+    Type: String
+    Default: "InitialHash"
 Resources:
   CommonModuleLayer:
     Type: AWS::Serverless::LayerVersion
@@ -39,7 +37,7 @@ Resources:
       - python3.9
       LicenseInfo: MIT
       RetentionPolicy: Retain
-
+    Condition: CommonModuleLayerCondition
   NumPyLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -53,7 +51,7 @@ Resources:
       - python3.9
       LicenseInfo: MIT
       RetentionPolicy: Retain
-
+    Condition: NumPyLayerCondition
   PandasLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -64,25 +62,10 @@ Resources:
       CompatibleRuntimes:
       - python3.11
       - python3.12
-      - python3.9
       LicenseInfo: MIT
       RetentionPolicy: Retain
-
-Outputs:
-  CommonModuleLayerArn:
-    Description: ARN of the CommonModule layer
-    Value: !Ref CommonModuleLayer
-    Export:
-      Name: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-CommonModule-Layer-Arn"
-  
-  NumPyLayerArn:
-    Description: ARN of the NumPy layer
-    Value: !Ref NumPyLayer
-    Export:
-      Name: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-NumPy-Layer-Arn"
-  
-  PandasLayerArn:
-    Description: ARN of the Pandas layer
-    Value: !Ref PandasLayer
-    Export:
-      Name: !Sub "${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-Pandas-Layer-Arn"
+    Condition: PandasLayerCondition
+Conditions:
+  CommonModuleLayerCondition: !Not [ !Equals [ !Ref CommonModuleLayerHash , !Sub '${CommonModuleLayerHash}' ] ]
+  NumPyLayerCondition: !Not [ !Equals [ !Ref NumPyLayerHash , !Sub '${NumPyLayerHash}' ] ]
+  PandasLayerCondition: !Not [ !Equals [ !Ref PandasLayerHash , !Sub '${PandasLayerHash}' ] ]
