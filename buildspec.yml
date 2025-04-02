@@ -1,81 +1,71 @@
 version: 0.2
 phases:
   install:
+    on-failure: ABORT
     runtime-versions:
       python: 3.12
-    commands:
-      - echo "Installing dependencies"
-
   pre_build:
+    on-failure: ABORT
     commands:
       - mkdir -p artifacts
+      - mkdir -p layer_hashes
+      
+      # Calculate hashes for each layer directory
+      - echo "Calculating layer content hashes..."
+      - COMMON_HASH=$(find infra_automation/common_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
+      - NUMPY_HASH=$(find infra_automation/numpy_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
+      - PANDAS_HASH=$(find infra_automation/pandas_modules -type f -exec sha256sum {} \; | sort | sha256sum | cut -d' ' -f1)
+      
+      # Check if previous hashes exist and compare
       - |
-        COMMON_MODULES_HASH=$(find infra_automation/common_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        NUMPY_LAYER_HASH=$(find infra_automation/numpy_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        PANDAS_LAYER_HASH=$(find infra_automation/pandas_modules -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)
-        
-        echo $COMMON_MODULES_HASH > artifacts/common_modules_hash.txt
-        echo $NUMPY_LAYER_HASH > artifacts/numpy_layer_hash.txt
-        echo $PANDAS_LAYER_HASH > artifacts/pandas_layer_hash.txt
-
-      - aws s3 cp s3://<your-bucket>/common_modules_hash.txt ./previous_common_modules_hash.txt || true
-      - aws s3 cp s3://<your-bucket>/numpy_layer_hash.txt ./previous_numpy_layer_hash.txt || true
-      - aws s3 cp s3://<your-bucket>/pandas_layer_hash.txt ./previous_pandas_layer_hash.txt || true
-
+        if [ -f layer_hashes/common_hash.txt ]; then
+          PREV_COMMON_HASH=$(cat layer_hashes/common_hash.txt)
+          if [ "$COMMON_HASH" == "$PREV_COMMON_HASH" ]; then
+            echo "CommonModuleLayer content unchanged, will reuse existing layer version"
+            sed -i 's|ContentUri: infra_automation/common_modules/|#ContentUri: infra_automation/common_modules/|g' template.yml
+          else
+            echo "CommonModuleLayer content changed, will create new version"
+          fi
+        fi
       - |
-        if [ "$COMMON_MODULES_HASH" == "$(cat ./previous_common_modules_hash.txt 2>/dev/null)" ]; then
-          echo "No changes detected in Common Modules, skipping..."
-          SKIP_COMMON_MODULE_LAYER=true
-        else
-          SKIP_COMMON_MODULE_LAYER=false
+        if [ -f layer_hashes/numpy_hash.txt ]; then
+          PREV_NUMPY_HASH=$(cat layer_hashes/numpy_hash.txt)
+          if [ "$NUMPY_HASH" == "$PREV_NUMPY_HASH" ]; then
+            echo "NumPyLayer content unchanged, will reuse existing layer version"
+            sed -i 's|ContentUri: infra_automation/numpy_modules/|#ContentUri: infra_automation/numpy_modules/|g' template.yml
+          else
+            echo "NumPyLayer content changed, will create new version"
+          fi
         fi
-
-        if [ "$NUMPY_LAYER_HASH" == "$(cat ./previous_numpy_layer_hash.txt 2>/dev/null)" ]; then
-          echo "No changes detected in NumPy Layer, skipping..."
-          SKIP_NUMPY_LAYER=true
-        else
-          SKIP_NUMPY_LAYER=false
+      - |
+        if [ -f layer_hashes/pandas_hash.txt ]; then
+          PREV_PANDAS_HASH=$(cat layer_hashes/pandas_hash.txt)
+          if [ "$PANDAS_HASH" == "$PREV_PANDAS_HASH" ]; then
+            echo "PandasLayer content unchanged, will reuse existing layer version"
+            sed -i 's|ContentUri: infra_automation/pandas_modules/|#ContentUri: infra_automation/pandas_modules/|g' template.yml
+          else
+            echo "PandasLayer content changed, will create new version"
+          fi
         fi
-
-        if [ "$PANDAS_LAYER_HASH" == "$(cat ./previous_pandas_layer_hash.txt 2>/dev/null)" ]; then
-          echo "No changes detected in Pandas Layer, skipping..."
-          SKIP_PANDAS_LAYER=true
-        else
-          SKIP_PANDAS_LAYER=false
-        fi
+      
+      # Store current hashes for next build
+      - echo $COMMON_HASH > layer_hashes/common_hash.txt
+      - echo $NUMPY_HASH > layer_hashes/numpy_hash.txt
+      - echo $PANDAS_HASH > layer_hashes/pandas_hash.txt
+      - cp -r layer_hashes artifacts/
 
   build:
+    on-failure: ABORT
     commands:
-      - if [ "$SKIP_COMMON_MODULE_LAYER" = false ]; then
-          aws cloudformation package \
-          --template-file template.yml \
-          --s3-bucket $BUILD_OUTPUT_BUCKET \
-          --s3-prefix $BUILD_OUTPUT_PREFIX \
-          --output-template-file artifacts/packaged_common_module_layer.yaml;
-        fi
-
-      - if [ "$SKIP_NUMPY_LAYER" = false ]; then
-          aws cloudformation package \
-          --template-file template.yml \
-          --s3-bucket $BUILD_OUTPUT_BUCKET \
-          --s3-prefix $BUILD_OUTPUT_PREFIX \
-          --output-template-file artifacts/packaged_numpy_layer.yaml;
-        fi
-
-      - if [ "$SKIP_PANDAS_LAYER" = false ]; then
-          aws cloudformation package \
-          --template-file template.yml \
-          --s3-bucket $BUILD_OUTPUT_BUCKET \
-          --s3-prefix $BUILD_OUTPUT_PREFIX \
-          --output-template-file artifacts/packaged_pandas_layer.yaml;
-        fi
+      - echo "Build script execution."
 
   post_build:
+    on-failure: ABORT
     commands:
-      - aws s3 cp artifacts/common_modules_hash.txt s3://<your-bucket>/
-      - aws s3 cp artifacts/numpy_layer_hash.txt s3://<your-bucket>/
-      - aws s3 cp artifacts/pandas_layer_hash.txt s3://<your-bucket>/
+      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml
+
 artifacts:
   type: zip
   files:
-    - 'artifacts/*/'
+    - 'artifacts/**/*'
+    - 'layer_hashes/**/*'
