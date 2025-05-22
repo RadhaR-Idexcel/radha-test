@@ -8,7 +8,6 @@ phases:
     on-failure: ABORT
     commands:
       - mkdir -p artifacts
-      - echo "Updating template description with Execution ID: $EXECUTION_ID"
       - sed -i "s|^Description:.*|Description: 'Service stack - Execution ID: $EXECUTION_ID'|" template.yml
   build:
     on-failure: ABORT
