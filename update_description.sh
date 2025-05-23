@@ -1,37 +1,28 @@
 #!/bin/bash
+
 set -e
 
 TEMPLATE_FILE="template.yml"
 
 # Check if EXECUTION_ID is set
 if [ -z "$EXECUTION_ID" ]; then
-  echo "ERROR: EXECUTION_ID is not set."
+  echo "Error: EXECUTION_ID environment variable is not set."
   exit 1
 fi
 
-# Check if template file exists
+# Ensure template file exists
 if [ ! -f "$TEMPLATE_FILE" ]; then
-  echo "ERROR: $TEMPLATE_FILE not found."
+  echo "Error: $TEMPLATE_FILE does not exist."
   exit 1
 fi
 
-# Check if Description key exists
+# Check if 'Description:' key exists
 if grep -q '^Description:' "$TEMPLATE_FILE"; then
-  # Description exists, append Execution ID if not already present
-  sed -i "/^Description:/ s|\"$| - Execution ID: $EXECUTION_ID\"|" "$TEMPLATE_FILE"
-  sed -i "/^Description:/ s|Execution ID: .*Execution ID:|Execution ID:|g" "$TEMPLATE_FILE"  # Cleanup duplicates
+  # Append execution ID to existing description
+  sed -i "s|^Description:.*|& - Execution ID: $EXECUTION_ID|" "$TEMPLATE_FILE"
 else
-  # No description found, insert after the first non-empty line
-  awk -v eid="$EXECUTION_ID" '
-    BEGIN { inserted=0 }
-    NF && !inserted {
-      print
-      print "Description: \"Service stack - Execution ID: " eid "\""
-      inserted=1
-      next
-    }
-    { print }
-  ' "$TEMPLATE_FILE" > tmp_template.yml && mv tmp_template.yml "$TEMPLATE_FILE"
+  # Insert description at the top
+  sed -i "1i Description: \"Service stack - Execution ID: $EXECUTION_ID\"" "$TEMPLATE_FILE"
 fi
 
-echo "Template description updated successfully."
+echo "Template description updated successfully with Execution ID: $EXECUTION_ID"
