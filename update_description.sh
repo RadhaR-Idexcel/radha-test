@@ -18,8 +18,12 @@ fi
 
 # Check if 'Description:' key exists
 if grep -q '^Description:' "$TEMPLATE_FILE"; then
-  # Append execution ID to existing description
-  sed -i "s|^Description:.*|& - Execution ID: $EXECUTION_ID|" "$TEMPLATE_FILE"
+  # Extract current description content (strip leading key)
+  CURRENT_DESC=$(grep '^Description:' "$TEMPLATE_FILE" | sed 's/^Description:[[:space:]]*//')
+  # Strip any quotes around it
+  CLEAN_DESC=$(echo "$CURRENT_DESC" | sed 's/^"\(.*\)"$/\1/')
+  # Safely update the description line
+  sed -i "s|^Description:.*|Description: \"${CLEAN_DESC} - Execution ID: $EXECUTION_ID\"|" "$TEMPLATE_FILE"
 else
   # Insert description at the top
   sed -i "1i Description: \"Service stack - Execution ID: $EXECUTION_ID\"" "$TEMPLATE_FILE"
