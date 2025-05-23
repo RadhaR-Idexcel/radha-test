@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A CloudFormation template to create Serverless Resources for ClientOnBoarding Service
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   ResourceNamePrefix:
