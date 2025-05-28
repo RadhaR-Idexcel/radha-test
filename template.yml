@@ -1,5 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A CloudFormation template to create Serverless Resources for ClientOnBoarding Service
+
+Description: >-
+  Loan microservice serverless application creation
+# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
 Transform: AWS::Serverless-2016-10-31
 Parameters:
   ResourceNamePrefix:
