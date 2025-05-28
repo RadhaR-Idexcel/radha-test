@@ -7,13 +7,13 @@ TEMPLATE_FILE="template.yml"
 # Check if EXECUTION_ID is set
 if [ -z "$EXECUTION_ID" ]; then
   echo "Error: EXECUTION_ID environment variable is not set."
-  exit 1
+  exit 0
 fi
 
 # Ensure template file exists
 if [ ! -f "$TEMPLATE_FILE" ]; then
   echo "Error: $TEMPLATE_FILE does not exist."
-  exit 1
+  exit 0
 fi
 
 # Detect and update Description
