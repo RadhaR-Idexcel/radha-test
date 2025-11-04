@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an S3 bucket and IAM role for artifact storage
+
+Parameters:
+  ResourceNamePrefix:
+    Type: String
+    Description: Prefix for resource naming (e.g., Los)
+  EnvironmentType:
+    Type: String
+    Description: Environment name (e.g., Dev, Test, Prod)
+  ServiceName:
+    Type: String
+    Description: Name of the service (e.g., Pipeline, Deployment)
+    Default: TestCase
+
+Resources:
+  ArtifactsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Bucket'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Bucket'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+        - Key: Service
+          Value: !Ref ServiceName
+
+  ArtifactsS3BucketRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3AccessPolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Bucket'
+                  - !Sub 'arn:aws:s3:::${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Bucket/*'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourceNamePrefix}-${EnvironmentType}-${ServiceName}-ArtifactsS3Role'
+        - Key: Environment
+          Value: !Ref EnvironmentType
+        - Key: Service
+          Value: !Ref ServiceName
+
+Outputs:
+  S3BucketName:
+    Description: Name of the S3 bucket created for storing artifacts
+    Value: !Ref ArtifactsS3Bucket
+
+  IAMRoleName:
+    Description: Name of the IAM Role with S3 access
+    Value: !Ref ArtifactsS3BucketRole
