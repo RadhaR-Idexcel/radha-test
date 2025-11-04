@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+  install:
+    on-failure: ABORT
+    runtime-versions:
+      python: 3.12
+
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - mkdir -p artifacts
+      - eval $PreBuildScript
+
+  build:
+    on-failure: ABORT
+    commands:
+      - echo "Build script execution."
+
+  post_build:
+    on-failure: ABORT
+    commands:
+      - aws cloudformation package --template-file template.yml --s3-bucket $BUILD_OUTPUT_BUCKET --s3-prefix $BUILD_OUTPUT_PREFIX --output-template-file artifacts/packaged.yaml
+      - eval $PostBuildScript
+artifacts:
+  type: zip
+  files:
+    - 'artifacts/*'
