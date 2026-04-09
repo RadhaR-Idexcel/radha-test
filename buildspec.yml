@@ -1,0 +1,48 @@
+version: 0.2
+
+env:
+  variables:
+    CHECKOV_VERSION: "3.2.0"
+    TEMPLATE_FILE: "template.yml"
+    SOURCE_BUCKET: "radha-test-s3-bucket"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - echo "Installing Checkov..."
+      - pip install checkov==$CHECKOV_VERSION --break-system-packages
+      - checkov --version
+
+  pre_build:
+    commands:
+      - echo "Checking files exist..."
+      - test -f template.yml || (echo "ERROR template.yml not found" && exit 1)
+      - test -f custom-rules/check_single_s3.py || (echo "ERROR custom rule not found" && exit 1)
+      - echo "All files found"
+      - mkdir -p reports
+
+  build:
+    commands:
+      - echo "Running Checkov on $TEMPLATE_FILE..."
+      - checkov --config-file .checkov.yaml --file $TEMPLATE_FILE --output cli --output junitxml --output-file-path reports/ 2>&1 | tee reports/checkov-output.txt
+      - echo "Checkov scan complete"
+
+  post_build:
+    commands:
+      - echo "Scan status $CODEBUILD_BUILD_SUCCEEDING"
+      - cat reports/checkov-output.txt
+      - aws s3 cp reports/ s3://$SOURCE_BUCKET/reports/ --recursive
+      - echo "Reports uploaded to s3://$SOURCE_BUCKET/reports/"
+
+reports:
+  checkov-report:
+    files:
+      - "reports/results_junitxml.xml"
+    file-format: JUNITXML
+
+artifacts:
+  files:
+    - "reports/**/*"
+  name: CheckovReports

@@ -1,0 +1,18 @@
+# .checkov.yaml
+framework:
+  - cloudformation
+
+check:
+  - CKV_AWS_21                  # default rule  — S3 versioning enabled
+  - CKV2_CUSTOM_1               # custom rule   — only 1 S3 bucket per stack
+
+external-checks-dir:
+  - ./custom-rules
+
+output:
+  - cli
+  - junitxml
+
+output-file-path: reports/
+
+soft-fail: true

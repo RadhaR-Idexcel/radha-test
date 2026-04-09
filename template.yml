@@ -1,0 +1,20 @@
+# template.yml
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+
+  # Bucket 1 — versioning ON  → passes CKV_AWS_21
+  #           — first bucket  → passes CKV2_CUSTOM_1
+  MyBucketOne:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: mycompany-bucket-one
+      VersioningConfiguration:
+        Status: Enabled
+
+  # Bucket 2 — no versioning  → FAILS CKV_AWS_21
+  #           — second bucket → FAILS CKV2_CUSTOM_1
+  MyBucketTwo:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: mycompany-bucket-two
