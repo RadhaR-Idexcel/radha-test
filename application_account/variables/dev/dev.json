@@ -534,5 +534,6 @@
 	"LoanAutoAgentAppsAuroraPsqlUsername": "appl_${EnvNameSmall}_autoag",
 	"ExceptionAgentServiceInputStart": "**********************************************************************",
 	"ExceptionAgentServiceName": "ExceptionAgent",
-	"ExceptionAgentAppsAuroraPsqlUsername": "appl_${EnvNameSmall}_exceag"
+	"ExceptionAgentAppsAuroraPsqlUsername": "appl_${EnvNameSmall}_exceag",
+	"TestingGitHubaction": "TestingGitHubaction"
 }
