@@ -536,5 +536,6 @@
 	"ExceptionAgentServiceName": "ExceptionAgent",
 	"ExceptionAgentAppsAuroraPsqlUsername": "appl_${EnvNameSmall}_exceag",
 	"TestingGitHubaction": "TestingGitHubaction",
-	"TestingGitHubaction": "TestingGitHubaction"
+	"VarA": "${VarB}",
+	"VarB": "${VarA}"
 }
