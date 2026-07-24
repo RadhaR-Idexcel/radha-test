@@ -1,0 +1,51 @@
+name: Validate Variable References
+
+on:
+  pull_request:
+    paths:
+      - 'application_account/variables/**'
+      - 'deployment_account/variables/**'
+      - 'source_code/validation_scripts/**'
+  push:
+    branches:
+      - master_2.0
+    paths:
+      - 'application_account/variables/**'
+      - 'deployment_account/variables/**'
+
+jobs:
+  validate-application-variables:
+    runs-on: ubuntu-latest
+    name: Validate Application Account Variables
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Run validator for application_account
+        run: |
+          python source_code/validation_scripts/input_validations/variable_reference_validator.py application_account/variables/
+        continue-on-error: false
+
+  validate-deployment-variables:
+    runs-on: ubuntu-latest
+    name: Validate Deployment Account Variables
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Run validator for deployment_account
+        run: |
+          python source_code/validation_scripts/input_validations/variable_reference_validator.py deployment_account/variables/
+        continue-on-error: false
