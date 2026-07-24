@@ -1,0 +1,27 @@
+name: Enforce Branch Protection
+
+on:
+  workflow_run:
+    workflows: ["Validate Variable References"]
+    types:
+      - completed
+
+jobs:
+  enforce-protection:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure'
+    
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.workflow_run.pull_requests[0];
+            if (pr) {
+              github.rest.issues.createComment({
+                issue_number: pr.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '❌ **Variable validation failed**\n\nThe variable reference validator detected issues in:\n- Application Account Variables, OR\n- Deployment Account Variables\n\nPlease review the validation workflow logs and fix the errors before merging.'
+              });
+            }
